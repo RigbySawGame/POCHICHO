@@ -549,34 +549,85 @@
         </script>
     <script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"rayId":"95708077dfaeaeab","version":"2025.6.2","r":1,"token":"dbcd8856a1a842ceb5c3d63534a9f51d","serverTiming":{"name":{"cfExtPri":true,"cfEdge":true,"cfOrigin":true,"cfL4":true,"cfSpeedBrain":true,"cfCacheStatus":true}}}' crossorigin="anonymous"></script>
 
+        
 
 
 
-    <script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        <script>
     function requestFullScreen() {
         const elem = document.documentElement;
         if (elem.requestFullscreen) {
             elem.requestFullscreen();
-        } else if (elem.webkitRequestFullscreen) { // Safari
+        } else if (elem.webkitRequestFullscreen) {
             elem.webkitRequestFullscreen();
-        } else if (elem.msRequestFullscreen) { // IE11
+        } else if (elem.msRequestFullscreen) {
             elem.msRequestFullscreen();
         }
     }
 
-    // Detecta si está en móvil
+    function isLandscape() {
+        return window.innerWidth > window.innerHeight;
+    }
+
     function isMobile() {
         return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     }
 
-    // Solo para móviles: pide pantalla completa después del primer toque
-    if (isMobile()) {
-        window.addEventListener("touchstart", function fullScreenOnce() {
-            requestFullScreen();
-            window.removeEventListener("touchstart", fullScreenOnce);
-        });
+    let activated = false;
+
+    function tryStartExperience() {
+        if (activated) return;
+        activated = true;
+
+        // Pantalla completa
+        requestFullScreen();
+
+        // Iniciar música
+        if (window.musicManager) {
+            window.musicManager.play();
+        }
+
+        // Iniciar animación si tienes alguna función global como startAnimation()
+        if (typeof startAnimation === "function") {
+            startAnimation();
+        }
     }
-        </script>
+
+    // Detectar rotación a landscape
+    window.addEventListener("orientationchange", () => {
+        setTimeout(() => {
+            if (isMobile() && isLandscape()) {
+                // Espera interacción táctil para evitar bloqueo del navegador
+                window.addEventListener("touchstart", tryStartExperience, { once: true });
+            }
+        }, 300);
+    });
+
+    // También iniciar en primer toque, como respaldo
+    window.addEventListener("touchstart", tryStartExperience, { once: true });
+</script>
+
+
+    
 </body>
 
 </html>
