@@ -611,7 +611,8 @@ scene.add(planet);
 
 // ---- TẠO CÁC VÒNG CHỮ QUAY QUANH HÀNH TINH ----
 const ringTexts = [
-    'christian',
+    ' 🤍 Christian y Rocio  🤍 ',
+    ' Eres mi sol en cualquier galaxia' ,
     ...(window.dataLove2Loveloom && window.dataLove2Loveloom.data.ringTexts ? window.dataLove2Loveloom.data.ringTexts : [])
 ];
 
@@ -664,8 +665,10 @@ function createTextRings() {
         // ---- Kết thúc logic phân tích font ----
 
         // ---- Tạo texture chữ động ----
-        const textureHeight = 350;
-        const fontSize = Math.max(250, .9 * textureHeight);
+        const textureHeight = 750;
+        const fontSize = Math.max(500, .9 * textureHeight);
+
+        
 
         // Đo chiều rộng của text để lặp lại
         const tempCanvas = document.createElement('canvas');
