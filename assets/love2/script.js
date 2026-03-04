@@ -87,9 +87,9 @@ const galaxyParameters = {
 // Danh sách hình ảnh trái tim, kết hợp dữ liệu từ subdomain và mặc định
 const heartImages = [
     ...(window.dataLove2Loveloom && window.dataLove2Loveloom.data.heartImages ? window.dataLove2Loveloom.data.heartImages : []),
-    'image404.jpg', 'image404.jpg', 'image404.jpg',
-    'image404.jpg', 'image404.jpg', 'image404.jpg',
-    'image404.jpg', 'image404.jpg', 'image404.jpg'
+    'primero.jpg', 'primero.jpg', 'primero.jpg',
+    'primero.jpg', 'primero.jpg', 'primero.jpg',
+    'primero.jpg', 'primero.jpg', 'primero.jpg'
 ];
 
 const textureLoader = new THREE.TextureLoader();
@@ -320,7 +320,7 @@ for (let group = 0; group < numGroups; group++) {
     groupGeometryFar.translate(-cx, -cy, -cz);
 
     // Tải hình ảnh và tạo vật thể
-    const img = new window.Image();
+    /*const img = new window.Image();
     img.crossOrigin = "Anonymous";
     img.src = heartImages[group];
     img.onload = () => {
@@ -359,7 +359,114 @@ for (let group = 0; group < numGroups; group++) {
         pointsObject.userData.geometryFar = groupGeometryFar;
 
         scene.add(pointsObject);
-    };
+    };*/
+
+
+    // Tải hình ảnh và tạo vật thể (Soporte para Imagen y Video)
+    const url = heartImages[group];
+    const isVideo = url.endsWith('.mp4') || url.endsWith('.webm') || url.endsWith('.ogg');
+
+if (isVideo) {
+    // --- LÓGICA PARA VIDEOS (EXACTAMENTE IGUAL A LAS FOTOS) ---
+    const video = document.createElement('video');
+    video.src = url;
+    video.crossOrigin = 'anonymous';
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.autoplay = true;
+    video.play().catch(e => console.warn("Autoplay bloqueado:", e));
+
+    // En lugar de pasar el video directo a Three.js, creamos un Canvas igual que las fotos
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    
+    const videoCanvasTexture = new THREE.CanvasTexture(canvas);
+    videoCanvasTexture.colorSpace = THREE.SRGBColorSpace;
+
+    // Guardamos el video y su canvas en una lista global para animarlo después
+    if (!window.videoTexturesToUpdate) window.videoTexturesToUpdate = [];
+    window.videoTexturesToUpdate.push({
+        video: video,
+        canvas: canvas,
+        ctx: ctx,
+        texture: videoCanvasTexture,
+        size: size
+    });
+
+    // USAMOS EXACTAMENTE LOS MISMOS MATERIALES ORIGINALES DE LAS IMÁGENES
+    const materialNear = new THREE.PointsMaterial({
+        size: 1.8,
+        map: videoCanvasTexture,
+        transparent: false,
+        alphaTest: 0.2,
+        depthWrite: true,
+        depthTest: true,
+        blending: THREE.NormalBlending,
+        vertexColors: true
+    });
+
+    const materialFar = new THREE.PointsMaterial({
+        size: 1.8,
+        map: videoCanvasTexture,
+        transparent: true,
+        alphaTest: 0.2,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        vertexColors: true
+    });
+
+    const pointsObject = new THREE.Points(groupGeometryFar, materialFar);
+    pointsObject.position.set(cx, cy, cz);
+    pointsObject.userData.materialNear = materialNear;
+    pointsObject.userData.geometryNear = groupGeometryNear;
+    pointsObject.userData.materialFar = materialFar;
+    pointsObject.userData.geometryFar = groupGeometryFar;
+    scene.add(pointsObject);
+}
+    
+     else {
+        // --- LÓGICA ORIGINAL PARA IMÁGENES (.jpeg, .png, etc) ---
+        const img = new window.Image();
+        img.crossOrigin = "Anonymous";
+        img.src = url;
+        img.onload = () => {
+            const neonTexture = createNeonTexture(img, 256);
+
+            const materialNear = new THREE.PointsMaterial({
+                size: 1.8,
+                map: neonTexture,
+                transparent: false,
+                alphaTest: 0.2,
+                depthWrite: true,
+                depthTest: true,
+                blending: THREE.NormalBlending,
+                vertexColors: true
+            });
+
+            const materialFar = new THREE.PointsMaterial({
+                size: 1.8,
+                map: neonTexture,
+                transparent: true,
+                alphaTest: 0.2,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
+                vertexColors: true
+            });
+
+            const pointsObject = new THREE.Points(groupGeometryFar, materialFar);
+            pointsObject.position.set(cx, cy, cz); 
+            pointsObject.userData.materialNear = materialNear;
+            pointsObject.userData.geometryNear = groupGeometryNear;
+            pointsObject.userData.materialFar = materialFar;
+            pointsObject.userData.geometryFar = groupGeometryFar;
+
+            scene.add(pointsObject);
+        };
+    }    
+    
 }
 
 
@@ -932,6 +1039,56 @@ function animateHintIcon(time) {
 function animate() {
     requestAnimationFrame(animate);
     const time = performance.now() * 0.001;
+
+    // --- NUEVO: ACTUALIZAR LOS VIDEOS CON BORDES REDONDOS ---
+    if (window.videoTexturesToUpdate) {
+        window.videoTexturesToUpdate.forEach(item => {
+            // Verificamos que el video ya tenga un cuadro listo para dibujar
+            if (item.video.readyState >= item.video.HAVE_CURRENT_DATA) {
+                const size = item.size;
+                const aspectRatio = item.video.videoWidth / item.video.videoHeight;
+                let drawWidth, drawHeight, offsetX, offsetY;
+                
+                // Mismos cálculos de proporción que tienen las fotos originales
+                if (aspectRatio > 1) {
+                    drawWidth = size;
+                    drawHeight = size / aspectRatio;
+                    offsetX = 0;
+                    offsetY = (size - drawHeight) / 2;
+                } else {
+                    drawHeight = size;
+                    drawWidth = size * aspectRatio;
+                    offsetX = (size - drawWidth) / 2;
+                    offsetY = 0;
+                }
+                
+                item.ctx.clearRect(0, 0, size, size);
+                const cornerRadius = size * 0.1;
+                
+                // Dibujamos el recorte exacto (IGUAL a la función createNeonTexture)
+                item.ctx.save();
+                item.ctx.beginPath();
+                item.ctx.moveTo(offsetX + cornerRadius, offsetY);
+                item.ctx.lineTo(offsetX + drawWidth - cornerRadius, offsetY);
+                item.ctx.arcTo(offsetX + drawWidth, offsetY, offsetX + drawWidth, offsetY + cornerRadius, cornerRadius);
+                item.ctx.lineTo(offsetX + drawWidth, offsetY + drawHeight - cornerRadius);
+                item.ctx.arcTo(offsetX + drawWidth, offsetY + drawHeight, offsetX + drawWidth - cornerRadius, offsetY + drawHeight, cornerRadius);
+                item.ctx.lineTo(offsetX + cornerRadius, offsetY + drawHeight);
+                item.ctx.arcTo(offsetX, offsetY + drawHeight, offsetX, offsetY + drawHeight - cornerRadius, cornerRadius);
+                item.ctx.lineTo(offsetX, offsetY + cornerRadius);
+                item.ctx.arcTo(offsetX, offsetY, offsetX + cornerRadius, offsetY, cornerRadius);
+                item.ctx.closePath();
+                item.ctx.clip();
+                
+                // Pintamos el frame actual del video dentro del recorte
+                item.ctx.drawImage(item.video, offsetX, offsetY, drawWidth, drawHeight);
+                item.ctx.restore();
+                
+                // Le indicamos a Three.js que actualice la textura en la pantalla
+                item.texture.needsUpdate = true;
+            }
+        });
+    }
 
     // Cập nhật icon gợi ý
     animateHintIcon(time);
