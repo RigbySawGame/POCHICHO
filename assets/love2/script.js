@@ -601,7 +601,7 @@ for (let group = 0; group < numGroups; group++) {
         // En lugar de pasar el video directamente a Three.js,
         // lo dibujamos en un canvas cada frame (igual que las fotos)
         // para poder aplicar el recorte con esquinas redondeadas
-        const size   = 256; // → AUMENTAR para videos más nítidos (más CPU)
+        const size   = 512; // → AUMENTAR para videos más nítidos (más CPU)
         const canvas = document.createElement('canvas');
         canvas.width = canvas.height = size;
         const ctx = canvas.getContext('2d');
@@ -1873,3 +1873,4 @@ window.addEventListener('resize',            checkOrientation);
 window.addEventListener('orientationchange', () => {
     setTimeout(checkOrientation, 200); // 200ms de espera para dimensiones correctas
 });
+
