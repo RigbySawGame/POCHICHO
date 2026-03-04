@@ -87,9 +87,9 @@ const galaxyParameters = {
 // Danh sách hình ảnh trái tim, kết hợp dữ liệu từ subdomain và mặc định
 const heartImages = [
     ...(window.dataLove2Loveloom && window.dataLove2Loveloom.data.heartImages ? window.dataLove2Loveloom.data.heartImages : []),
-    'error.jpg', 'error.jpg', 'error.jpg',
-    'error.jpg', 'error.jpg', 'error.jpg',
-    'error.jpg', 'error.jpg', 'error.jpg'
+    'error.png', 'error.png', 'error.png',
+    'error.png', 'error.png', 'error.png',
+    'error.png', 'error.png', 'error.png'
 ];
 
 const textureLoader = new THREE.TextureLoader();
@@ -1463,3 +1463,4 @@ window.addEventListener('orientationchange', () => {
     setTimeout(checkOrientation, 200); 
 
 });
+
