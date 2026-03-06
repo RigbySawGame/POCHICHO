@@ -656,10 +656,94 @@
 </script>
 
 
+
+
+<!-- ═══════════════════════════════════════════════════
+     PEGA ESTO justo antes de </body> en tu index.html
+═══════════════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script>
+  // Solo inicializa si no fue inicializado antes
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey: "AIzaSyAcAXbi9Uy17VZ3CBcRyqV3a17MLpCcqDE",
+      authDomain: "pochicoplaneta.firebaseapp.com",
+      databaseURL: "https://pochicoplaneta-default-rtdb.firebaseio.com",
+      projectId: "pochicoplaneta",
+      storageBucket: "pochicoplaneta.firebasestorage.app",
+      messagingSenderId: "682653042527",
+      appId: "1:682653042527:web:18f670064b502e63b958ea"
+    });
+  }
+
+  const _db = firebase.database();
+  const _now = Date.now();
+  const _today = new Date().toISOString().split('T')[0]; // ej: "2026-03-05"
+  const _visitKey = 'pochicho_visited';
+
+  // Solo registrar una vez por sesión
+  if (!sessionStorage.getItem(_visitKey)) {
+    sessionStorage.setItem(_visitKey, '1');
+
+    // 1. Sumar visita del día
+    _db.ref('stats/days/' + _today).transaction(v => (v || 0) + 1);
+
+    // 2. Sumar total acumulado
+    _db.ref('stats/total').transaction(v => (v || 0) + 1);
+
+    // 3. Sumar visitante único
+    _db.ref('stats/unique').transaction(v => (v || 0) + 1);
+
+    // 4. Guardar en ventana de tiempo real (60 min)
+    _db.ref('stats/realtime').push({ ts: _now });
+
+    // 5. Detectar país y guardarlo
+    fetch('https://ipapi.co/json/')
+      .then(r => r.json())
+      .then(geo => {
+        const country = geo.country_name || 'Desconocido';
+        _db.ref('stats/countries/' + country).transaction(v => (v || 0) + 1);
+      })
+      .catch(() => {
+        _db.ref('stats/countries/Desconocido').transaction(v => (v || 0) + 1);
+      });
+  }
+
+  // Medir tiempo en página y acumularlo al salir
+  const _startTime = Date.now();
+  window.addEventListener('beforeunload', () => {
+    const secs = Math.round((Date.now() - _startTime) / 1000);
+    if (secs > 2) {
+      _db.ref('stats/totalSeconds').transaction(v => (v || 0) + secs);
+    }
+  });
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
     
 </body>
 
 </html>
+
 
 
 
