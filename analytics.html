@@ -109,9 +109,12 @@ body{background:var(--bg);color:var(--text);font-family:'Roboto',sans-serif;min-
 .rt-count{font-size:44px;font-weight:300;color:#fff;line-height:1;margin-bottom:4px}
 .rt-label{font-size:12px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:4px;cursor:pointer}
 .rt-label svg{width:14px;height:14px;fill:var(--muted)}
-.spark-wrap{height:48px;display:flex;align-items:flex-end;gap:2px;margin-bottom:6px}
-.spark-bar{flex:1;background:var(--accent);border-radius:2px 2px 0 0;min-height:2px}
-.rt-times{display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:10px}
+.spark-wrap{height:60px;position:relative;margin-bottom:0;cursor:crosshair}
+.spark-wrap canvas{width:100%!important;height:60px!important}
+.rt-times{display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:10px;margin-top:4px}
+.rt-dd-item{padding:10px 16px;font-size:13px;color:#ccc;cursor:pointer;transition:.15s}
+.rt-dd-item:hover{background:#333;color:#fff}
+.rt-dd-item.active{color:#fff;font-weight:500}
 .traffic-header{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:8px;padding-top:10px;border-top:1px solid var(--border)}
 .traffic-row{display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px}
 
@@ -179,9 +182,18 @@ body{background:var(--bg);color:var(--text);font-family:'Roboto',sans-serif;min-
         <div class="rt-head"><div class="dot"></div><h3>Tiempo real</h3></div>
         <p class="rt-sub">Actualizando</p>
         <div class="rt-count" id="rt-num">0</div>
-        <div class="rt-label">Vistas · Últimas 48 horas<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
-        <div class="spark-wrap" id="spark-bars"></div>
-        <div class="rt-times"><span>Hace 60 min</span><span>Ahora</span></div>
+        <div class="rt-label-wrap" style="position:relative">
+          <div class="rt-label" onclick="toggleRtDropdown()" id="rt-label-btn">
+            Vistas · <span id="rt-period-label">Últimos 60 minutos</span>
+            <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+          </div>
+          <div id="rt-dropdown" style="display:none;position:absolute;top:100%;left:0;background:#2a2a2a;border:1px solid #3a3a3a;border-radius:8px;overflow:hidden;z-index:50;min-width:170px;box-shadow:0 4px 16px rgba(0,0,0,.5)">
+            <div class="rt-dd-item active" id="dd-60min" onclick="setRtPeriod(60,'Últimos 60 minutos')">Últimos 60 minutos</div>
+            <div class="rt-dd-item" id="dd-48h" onclick="setRtPeriod(2880,'Últimas 48 horas')">Últimas 48 horas</div>
+          </div>
+        </div>
+        <div class="spark-wrap"><canvas id="spark-canvas"></canvas></div>
+        <div class="rt-times"><span id="rt-time-left">Hace 60 min</span><span>Ahora</span></div>
         <div class="traffic-header"><span>Fuentes de tráfico principales</span><span>Vistas</span></div>
         <div class="traffic-row"><span>Directo</span><span id="rt-direct">—</span></div>
         <button class="btn-ver" style="width:100%;margin-top:12px;text-align:center">Ver más</button>
@@ -405,6 +417,43 @@ firebase.initializeApp({
 });
 const db=firebase.database();
 
+// RT DROPDOWN
+let rtMinutes=60;
+function toggleRtDropdown(){
+  const dd=document.getElementById('rt-dropdown');
+  dd.style.display=dd.style.display==='none'?'block':'none';
+}
+document.addEventListener('click',e=>{
+  const wrap=document.querySelector('.rt-label-wrap');
+  if(wrap&&!wrap.contains(e.target)){
+    const dd=document.getElementById('rt-dropdown');
+    if(dd) dd.style.display='none';
+  }
+});
+function setRtPeriod(mins,label){
+  rtMinutes=mins;
+  document.getElementById('rt-period-label').textContent=label;
+  document.getElementById('rt-dropdown').style.display='none';
+  document.getElementById('rt-time-left').textContent=mins<=60?'Hace 60 min':'Hace 48 h';
+  document.getElementById('dd-60min').classList.toggle('active',mins===60);
+  document.getElementById('dd-48h').classList.toggle('active',mins===2880);
+  refreshRT();
+}
+function refreshRT(){
+  const cut=Date.now()-rtMinutes*60000;
+  const vbm={};
+  db.ref('stats/realtime').orderByChild('ts').startAt(cut).once('value',s=>{
+    document.getElementById('rt-num').textContent=s.numChildren();
+    document.getElementById('rt-direct').textContent=s.numChildren();
+    s.forEach(child=>{
+      const d=new Date(child.val().ts);
+      const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'-'+String(d.getHours()).padStart(2,'0')+'-'+String(d.getMinutes()).padStart(2,'0');
+      vbm[k]=(vbm[k]||0)+1;
+    });
+    buildSpark(vbm,rtMinutes);
+  });
+}
+
 // TABS
 function switchTab(n){
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===n));
@@ -467,7 +516,8 @@ function buildGeo(elId,data){
 function buildSpark(data){
   const b=document.getElementById('spark-bars');if(!b)return;
   const vals=[];
-  for(let i=59;i>=0;i--){
+  const totalBars=Math.min(mins,120);
+  for(let i=totalBars-1;i>=0;i--){
     const d=new Date(Date.now()-i*60000);
     const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}-${String(d.getMinutes()).padStart(2,'0')}`;
     vals.push(data[k]||0);
@@ -561,19 +611,48 @@ function load(){
   }
 }
 
+// SPARKLINE con tooltip de hora estilo YouTube
+let sparkChart=null;
+function buildSpark(visitsByMinute, mins){
+  mins=mins||60;
+  const ctx=document.getElementById('spark-canvas');
+  if(!ctx) return;
+  const labelDates=[],values=[];
+  for(let i=59;i>=0;i--){
+    const d=new Date(Date.now()-i*60000);
+    const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'-'+String(d.getHours()).padStart(2,'0')+'-'+String(d.getMinutes()).padStart(2,'0');
+    labelDates.push(new Date(d));
+    values.push(visitsByMinute[k]||0);
+  }
+  if(sparkChart) sparkChart.destroy();
+  sparkChart=new Chart(ctx,{
+    type:'bar',
+    data:{labels:labelDates,datasets:[{data:values,backgroundColor:'#3ea6ff',borderRadius:2,borderSkipped:false,barPercentage:0.7}]},
+    options:{
+      responsive:false,animation:{duration:300},
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'#fff',titleColor:'#111',bodyColor:'#111',
+        borderColor:'#ddd',borderWidth:1,padding:10,displayColors:false,
+        callbacks:{
+          title:items=>{
+            const d=labelDates[items[0].dataIndex];
+            const d2=new Date(d.getTime()+60000);
+            const fT=x=>String(x.getHours()).padStart(2,'0')+':'+String(x.getMinutes()).padStart(2,'0');
+            const fD=x=>x.toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short'});
+            return d.toDateString()===d2.toDateString()?fD(d)+', '+fT(d)+' - '+fT(d2):fD(d)+', '+fT(d)+' - '+fD(d2)+', '+fT(d2);
+          },
+          label:c=>c.raw+' vista'+(c.raw!==1?'s':'')
+        }
+      }},
+      scales:{x:{display:false},y:{display:false,beginAtZero:true,min:0}}
+    }
+  });
+}
+
 // REALTIME
 function startRT(){
-  function upd(){
-    const cut=Date.now()-3600000;
-    db.ref('stats/realtime').orderByChild('ts').startAt(cut).on('value',s=>{
-      const c=s.numChildren();
-      document.getElementById('rt-num').textContent=c;
-      document.getElementById('rt-direct').textContent=c;
-    });
-    db.ref('stats/realtime').orderByChild('ts').endAt(cut-1).once('value',s=>s.forEach(c=>c.ref.remove()));
-  }
-  upd();setInterval(upd,30000);
-  buildSpark({});
+  refreshRT();
+  setInterval(refreshRT,30000);
 }
 
 // INIT
