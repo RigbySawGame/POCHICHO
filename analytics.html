@@ -3,339 +3,586 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Estadísticas · POCHICHO</title>
+<title>Estadísticas de video · POCHICHO</title>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#0f0f0f; color:#e1e1e1; font-family:'Roboto',sans-serif; min-height:100vh; }
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f0f0f;--surface:#1a1a1a;--surface2:#212121;--border:#303030;
+  --text:#e1e1e1;--muted:#aaa;--dim:#666;--accent:#3ea6ff;
+  --pink:#f48fb1;--purple:#7e57c2;--green:#4caf50;--teal:#00bcd4;
+}
+body{background:var(--bg);color:var(--text);font-family:'Roboto',sans-serif;min-height:100vh;font-size:14px}
 
-  /* HEADER */
-  .header {
-    background:#212121; border-bottom:1px solid #303030;
-    padding:12px 24px; display:flex; align-items:center;
-    justify-content:space-between; position:sticky; top:0; z-index:100;
-  }
-  .header h1 { font-size:16px; font-weight:400; color:#fff; }
-  .date-wrap { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
-  .date-range-small { font-size:11px; color:#aaa; }
-  .date-range-big { font-size:13px; color:#fff; font-weight:500; display:flex; align-items:center; gap:6px; cursor:pointer; }
-  .date-range-big svg { width:16px; height:16px; fill:#aaa; }
+.header{background:var(--surface2);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header h1{font-size:16px;font-weight:400}
+.header-right{display:flex;align-items:center;gap:12px}
+.mode-btn{background:var(--surface2);border:1px solid #555;color:var(--text);padding:7px 14px;border-radius:18px;font-size:13px;cursor:pointer;font-family:'Roboto',sans-serif;transition:.2s}
+.mode-btn:hover{background:#333}
+.date-wrap{text-align:right;cursor:pointer}
+.date-small{font-size:11px;color:var(--muted);display:block}
+.date-big{font-size:13px;color:#fff;font-weight:500;display:flex;align-items:center;gap:4px}
+.date-big svg{width:18px;height:18px;fill:var(--muted)}
 
-  /* TABS */
-  .tabs { display:flex; background:#212121; border-bottom:1px solid #303030; padding:0 24px; }
-  .tab { padding:14px 20px; font-size:14px; color:#aaa; cursor:pointer; border-bottom:2px solid transparent; transition:.2s; }
-  .tab.active { color:#fff; border-bottom-color:#fff; }
-  .tab:hover { color:#fff; }
+.tabs{display:flex;background:var(--surface2);border-bottom:1px solid var(--border);padding:0 24px}
+.tab{padding:14px 20px;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:.2s;white-space:nowrap}
+.tab.active{color:#fff;border-bottom-color:#fff}
+.tab:hover{color:#fff}
 
-  /* LAYOUT */
-  .layout { display:grid; grid-template-columns:1fr 280px; gap:0; max-width:1200px; margin:0 auto; }
-  .main { padding:24px; }
-  .sidebar { padding:24px 16px 24px 0; border-left:1px solid #303030; }
+.page{display:none}
+.page.active{display:block}
 
-  .headline { font-size:20px; font-weight:400; color:#fff; margin-bottom:20px; }
-  .headline b { font-weight:700; }
+.layout{display:grid;grid-template-columns:1fr 290px;max-width:1100px;margin:0 auto}
+.main-col{padding:24px}
+.side-col{padding:20px 16px 20px 0;border-left:1px solid var(--border)}
+.full-col{padding:24px;max-width:1100px;margin:0 auto}
 
-  /* STATS ROW */
-  .stats-row {
-    display:grid; grid-template-columns:repeat(3,1fr);
-    background:#272727; border-radius:12px; overflow:hidden;
-    border:1px solid #303030; margin-bottom:24px;
-  }
-  .stat-card { background:#1a1a1a; padding:18px 20px; border-right:1px solid #303030; }
-  .stat-card:last-child { border-right:none; }
-  .stat-label { font-size:11px; color:#aaa; margin-bottom:10px; }
-  .stat-value { font-size:28px; font-weight:400; color:#fff; }
-  .stat-dash { font-size:20px; color:#555; }
+.headline{font-size:20px;font-weight:400;color:#fff;margin-bottom:20px}
+.headline b{font-weight:700}
 
-  /* CHART */
-  .chart-wrap {
-    background:#1a1a1a; border:1px solid #303030; border-radius:12px;
-    padding:16px 20px; margin-bottom:8px;
-  }
-  .chart-wrap canvas { max-height:180px; }
-  .btn-ver-mas {
-    background:#272727; border:none; color:#fff; font-size:13px;
-    padding:8px 14px; border-radius:20px; cursor:pointer; margin-top:12px;
-    transition:.2s;
-  }
-  .btn-ver-mas:hover { background:#333; }
+.stats-row{display:grid;background:var(--surface);border-radius:12px;overflow:hidden;border:1px solid var(--border);margin-bottom:20px}
+.cols2{grid-template-columns:repeat(2,1fr)}
+.cols3{grid-template-columns:repeat(3,1fr)}
+.cols4{grid-template-columns:repeat(4,1fr)}
+.stat-card{background:var(--surface);padding:16px 20px;border-right:1px solid var(--border)}
+.stat-card:last-child{border-right:none}
+.stat-label{font-size:11px;color:var(--muted);margin-bottom:8px}
+.stat-value{font-size:26px;font-weight:400;color:#fff}
 
-  /* RETENCIÓN */
-  .retencion {
-    background:#1a1a1a; border:1px solid #303030; border-radius:12px;
-    padding:20px; margin-top:16px;
-  }
-  .retencion h3 { font-size:15px; font-weight:500; margin-bottom:4px; }
-  .retencion p { font-size:12px; color:#777; margin-bottom:20px; }
-  .empty-state { text-align:center; color:#555; font-size:13px; padding:20px 0; }
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:12px}
+.chart-box canvas{max-height:170px}
+.btn-ver{background:var(--surface2);border:1px solid var(--border);color:#fff;font-size:13px;padding:7px 14px;border-radius:18px;cursor:pointer;font-family:'Roboto',sans-serif;transition:.2s}
+.btn-ver:hover{background:#333}
 
-  /* SIDEBAR - TIEMPO REAL */
-  .realtime-box {
-    background:#1a1a1a; border:1px solid #303030; border-radius:12px;
-    padding:18px; margin-bottom:16px;
-  }
-  .rt-header { display:flex; align-items:center; gap:8px; margin-bottom:2px; }
-  .rt-header h3 { font-size:15px; font-weight:500; }
-  .dot { width:8px; height:8px; border-radius:50%; background:#3ea6ff; animation:pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
-  .rt-sub { font-size:12px; color:#777; margin-bottom:14px; }
-  .rt-count { font-size:42px; font-weight:300; color:#fff; line-height:1; margin-bottom:4px; }
-  .rt-label { font-size:12px; color:#aaa; margin-bottom:16px; }
-  .rt-bar { height:2px; background:#303030; border-radius:1px; margin-bottom:8px; position:relative; overflow:hidden; }
-  .rt-bar-fill { height:100%; background:#3ea6ff; width:0%; transition:width 1s; border-radius:1px; }
-  .rt-times { display:flex; justify-content:space-between; font-size:11px; color:#555; margin-bottom:14px; }
-  .btn-ver-mas-rt {
-    background:#272727; border:none; color:#fff; font-size:13px;
-    padding:7px 14px; border-radius:20px; cursor:pointer; width:100%;
-    transition:.2s;
-  }
-  .btn-ver-mas-rt:hover { background:#333; }
+.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px}
+.card h3{font-size:14px;font-weight:500;margin-bottom:4px}
+.card .sub{font-size:12px;color:var(--dim);margin-bottom:14px}
+.empty-state{font-size:13px;color:#555;line-height:1.6}
 
-  /* PAÍSES */
-  .geo-box {
-    background:#1a1a1a; border:1px solid #303030; border-radius:12px;
-    padding:18px;
-  }
-  .geo-box h3 { font-size:14px; font-weight:500; margin-bottom:4px; }
-  .geo-box p { font-size:12px; color:#777; margin-bottom:14px; }
-  .geo-item { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-  .geo-name { font-size:13px; color:#ccc; min-width:90px; }
-  .geo-bar-wrap { flex:1; height:5px; background:#2a2a2a; border-radius:3px; overflow:hidden; }
-  .geo-bar { height:100%; background:#3ea6ff; border-radius:3px; transition:width 1s ease; }
-  .geo-count { font-size:12px; color:#aaa; min-width:24px; text-align:right; }
+/* DONUT */
+.donut-wrap{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+.donut-canvas{width:90px!important;height:90px!important}
+.legend-item{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px}
+.legend-bar-wrap{flex:1;height:4px;background:#2a2a2a;border-radius:2px;overflow:hidden}
+.legend-bar{height:100%;border-radius:2px;transition:width 1s}
+.legend-name{font-size:12px;color:var(--muted);min-width:110px}
+.legend-pct{font-size:12px;color:var(--muted);min-width:38px;text-align:right}
 
-  @media(max-width:700px){
-    .layout { grid-template-columns:1fr; }
-    .sidebar { border-left:none; border-top:1px solid #303030; padding:16px; }
-    .stats-row { grid-template-columns:1fr; }
-    .stat-card { border-right:none; border-bottom:1px solid #303030; }
-  }
+/* FUNNEL */
+.funnel{display:flex;flex-direction:column;align-items:center;gap:2px}
+.f-step{background:#1e2a35;border:1px solid #2a3a4a;border-radius:6px;padding:12px 16px;text-align:center;width:100%;transition:width .5s}
+.f-step .f-label{font-size:11px;color:var(--muted);margin-bottom:4px}
+.f-step .f-val{font-size:22px;font-weight:300;color:#fff}
+.f-step .f-sub{font-size:11px;color:var(--dim);margin-top:2px}
+.f-arrow{color:var(--dim);font-size:10px;text-align:center;width:100%}
+
+/* DEVICE */
+.device-item{margin-bottom:12px}
+.device-header{display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px}
+.device-bar-wrap{height:5px;background:#2a2a2a;border-radius:3px;overflow:hidden}
+.device-bar{height:100%;border-radius:3px;transition:width 1s}
+
+/* LIKES */
+.likes-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.likes-row:last-of-type{border-bottom:none}
+.likes-name{font-size:13px;display:flex;align-items:center;gap:6px}
+.dot-c{width:8px;height:8px;border-radius:50%;display:inline-block}
+.likes-bar-full{height:4px;background:#2a2a2a;border-radius:2px;margin-top:4px;overflow:hidden}
+.likes-bar-fill{height:100%;border-radius:2px;transition:width 1s}
+
+/* IDIOMAS */
+.idioma-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.idioma-bar-wrap{flex:1;height:5px;background:#2a2a2a;border-radius:3px;overflow:hidden}
+.idioma-bar{height:100%;background:var(--purple);border-radius:3px}
+
+/* SIDEBAR */
+.rt-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px}
+.rt-head{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.rt-head h3{font-size:15px;font-weight:500}
+.dot{width:8px;height:8px;border-radius:50%;background:#3ea6ff;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+.rt-sub{font-size:12px;color:var(--dim);margin-bottom:12px}
+.rt-count{font-size:44px;font-weight:300;color:#fff;line-height:1;margin-bottom:4px}
+.rt-label{font-size:12px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:4px;cursor:pointer}
+.rt-label svg{width:14px;height:14px;fill:var(--muted)}
+.spark-wrap{height:48px;display:flex;align-items:flex-end;gap:2px;margin-bottom:6px}
+.spark-bar{flex:1;background:var(--accent);border-radius:2px 2px 0 0;min-height:2px}
+.rt-times{display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:10px}
+.traffic-header{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);margin-bottom:8px;padding-top:10px;border-top:1px solid var(--border)}
+.traffic-row{display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px}
+
+.geo-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px}
+.geo-box h3{font-size:14px;font-weight:500;margin-bottom:4px}
+.geo-box .sub{font-size:12px;color:var(--dim);margin-bottom:14px}
+.geo-item{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.geo-name{font-size:13px;color:#ccc;min-width:80px}
+.geo-bar-wrap{flex:1;height:5px;background:#2a2a2a;border-radius:3px;overflow:hidden}
+.geo-bar{height:100%;background:var(--accent);border-radius:3px;transition:width 1s}
+.geo-count{font-size:12px;color:var(--muted);min-width:20px;text-align:right}
+
+.retencion-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px}
+.retencion-box h3{font-size:15px;font-weight:500;margin-bottom:4px}
+.retencion-box .sub{font-size:12px;color:var(--dim);margin-bottom:14px}
+
+@media(max-width:750px){
+  .layout{grid-template-columns:1fr}
+  .side-col{border-left:none;border-top:1px solid var(--border);padding:16px}
+  .cols4{grid-template-columns:repeat(2,1fr)}
+  .cards-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1>Estadísticas de video</h1>
-  <div class="date-wrap">
-    <span class="date-range-small" id="date-small"></span>
-    <span class="date-range-big">
-      Últimos 28 días
-      <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-    </span>
+  <div class="header-right">
+    <button class="mode-btn">Modo avanzado</button>
+    <div class="date-wrap">
+      <span class="date-small" id="date-small"></span>
+      <span class="date-big">Últimos 28 días<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></span>
+    </div>
   </div>
 </div>
 
 <div class="tabs">
-  <div class="tab active">Resumen</div>
-  <div class="tab">Alcance</div>
-  <div class="tab">Participación</div>
-  <div class="tab">Público</div>
+  <div class="tab active" onclick="switchTab(0)">Resumen</div>
+  <div class="tab" onclick="switchTab(1)">Alcance</div>
+  <div class="tab" onclick="switchTab(2)">Participación</div>
+  <div class="tab" onclick="switchTab(3)">Público</div>
 </div>
 
-<div class="layout">
-  <div class="main">
-
-    <p class="headline">Este sitio recibió <b id="views-28">—</b> visitas en los últimos 28 días</p>
-
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-label">Vistas</div>
-        <div class="stat-value" id="total-views">—</div>
+<!-- TAB 0: RESUMEN -->
+<div class="page active" id="page-0">
+  <div class="layout">
+    <div class="main-col">
+      <p class="headline">Este sitio recibió <b id="views-28">—</b> visitas en los últimos 28 días</p>
+      <div class="stats-row cols3">
+        <div class="stat-card"><div class="stat-label">Vistas</div><div class="stat-value" id="r-total">—</div></div>
+        <div class="stat-card"><div class="stat-label">Tiempo de reproducción (horas)</div><div class="stat-value" id="r-hours">—</div></div>
+        <div class="stat-card"><div class="stat-label">Suscriptores</div><div class="stat-value" style="color:#555">—</div></div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Tiempo de visita (horas)</div>
-        <div class="stat-value" id="visit-time">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Visitantes únicos</div>
-        <div class="stat-value stat-dash" id="unique-visitors">—</div>
+      <div class="chart-box"><canvas id="chart-resumen"></canvas></div>
+      <button class="btn-ver">Ver más</button>
+      <div class="retencion-box">
+        <h3>Retención de público</h3>
+        <p class="sub">Desde que se subió (tiempo total)</p>
+        <div class="empty-state" style="text-align:center;padding:16px 0">No hay información suficiente para mostrar datos de retención de público.</div>
       </div>
     </div>
-
-    <div class="chart-wrap">
-      <canvas id="myChart"></canvas>
+    <div class="side-col">
+      <div class="rt-box">
+        <div class="rt-head"><div class="dot"></div><h3>Tiempo real</h3></div>
+        <p class="rt-sub">Actualizando</p>
+        <div class="rt-count" id="rt-num">0</div>
+        <div class="rt-label">Vistas · Últimas 48 horas<svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></div>
+        <div class="spark-wrap" id="spark-bars"></div>
+        <div class="rt-times"><span>Hace 60 min</span><span>Ahora</span></div>
+        <div class="traffic-header"><span>Fuentes de tráfico principales</span><span>Vistas</span></div>
+        <div class="traffic-row"><span>Directo</span><span id="rt-direct">—</span></div>
+        <button class="btn-ver" style="width:100%;margin-top:12px;text-align:center">Ver más</button>
+      </div>
+      <div class="geo-box">
+        <h3>Países</h3>
+        <p class="sub">Últimos 28 días</p>
+        <div id="geo-resumen"><div class="empty-state">Sin datos aún</div></div>
+      </div>
     </div>
-    <button class="btn-ver-mas">Ver más</button>
-
-    <div class="retencion">
-      <h3>Retención de público</h3>
-      <p>Desde que se subió (tiempo total)</p>
-      <div class="empty-state" id="retention-msg">No hay información suficiente para mostrar datos de retención de público.</div>
-    </div>
-
   </div>
+</div>
 
-  <div class="sidebar">
-
-    <div class="realtime-box">
-      <div class="rt-header">
-        <div class="dot"></div>
-        <h3>Tiempo real</h3>
+<!-- TAB 1: ALCANCE -->
+<div class="page" id="page-1">
+  <div class="full-col">
+    <div class="stats-row cols4">
+      <div class="stat-card"><div class="stat-label">Impresiones</div><div class="stat-value" id="a-imp">—</div></div>
+      <div class="stat-card"><div class="stat-label">Tasa de clics de las impresiones</div><div class="stat-value" id="a-ctr">—</div></div>
+      <div class="stat-card"><div class="stat-label">Vistas</div><div class="stat-value" id="a-views">—</div></div>
+      <div class="stat-card"><div class="stat-label">Usuarios únicos</div><div class="stat-value" id="a-unique">—</div></div>
+    </div>
+    <div class="chart-box"><canvas id="chart-alcance"></canvas></div>
+    <button class="btn-ver">Ver más</button>
+    <div class="cards-grid">
+      <div class="card">
+        <h3>Cómo encuentran los usuarios este video</h3>
+        <p class="sub">Vistas · Últimos 28 días</p>
+        <div class="donut-wrap">
+          <canvas class="donut-canvas" id="donut-trafico"></canvas>
+          <div id="legend-trafico"></div>
+        </div>
+        <button class="btn-ver">Ver más</button>
       </div>
-      <p class="rt-sub">Actualizando</p>
-      <div class="rt-count" id="rt-count">0</div>
-      <div class="rt-label">Vistas · Últimos 60 minutos ▾</div>
-      <div class="rt-bar"><div class="rt-bar-fill" id="rt-bar"></div></div>
-      <div class="rt-times"><span>Hace 60 min</span><span>Ahora</span></div>
-      <button class="btn-ver-mas-rt">Ver más</button>
+      <div class="card">
+        <h3>Impresiones y cómo derivaron en tiempo de reproducción</h3>
+        <p class="sub" id="funnel-dates"></p>
+        <div class="funnel">
+          <div class="f-step"><div class="f-label">Impresiones</div><div class="f-val" id="f-imp">—</div></div>
+          <div class="f-arrow">▼</div>
+          <div class="f-step" style="width:80%">
+            <div class="f-label">Tasa de clics: <span id="f-ctr">—</span></div>
+            <div class="f-label" style="margin-top:4px">Vistas provenientes de impresiones</div>
+            <div class="f-val" id="f-views">—</div>
+          </div>
+          <div class="f-arrow">▼</div>
+          <div class="f-step" style="width:60%">
+            <div class="f-label">Duración promedio de vistas: <span id="f-dur">—</span></div>
+          </div>
+          <div class="f-arrow">▼</div>
+          <div class="f-step" style="width:40%">
+            <div class="f-label">Tiempo de reproducción proveniente de...</div>
+            <div class="f-val" id="f-time">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Sitios o apps de terceros</h3>
+        <p class="sub">Vistas · Últimos 28 días</p>
+        <div class="empty-state">No hay suficientes datos de tráfico para mostrar este informe.</div>
+        <button class="btn-ver" style="margin-top:12px">Ver más</button>
+      </div>
+      <div class="card">
+        <h3>Términos de búsqueda de YouTube</h3>
+        <p class="sub">Vistas · Últimos 28 días</p>
+        <div class="empty-state">No hay suficientes datos de tráfico para mostrar este informe.</div>
+        <button class="btn-ver" style="margin-top:12px">Ver más</button>
+      </div>
+      <div class="card">
+        <h3>Contenido en que se sugiere este video</h3>
+        <p class="sub">Vistas · Últimos 28 días</p>
+        <div class="empty-state">No hay suficientes datos de tráfico para mostrar este informe.</div>
+        <button class="btn-ver" style="margin-top:12px">Ver más</button>
+      </div>
+      <div class="card">
+        <h3>Playlists con este video</h3>
+        <p class="sub">Vistas · Últimos 28 días</p>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:10px">
+          <span>Proporción del tráfico total:</span><span>—</span>
+        </div>
+        <div class="empty-state">No hay suficientes datos de tráfico para mostrar este informe.</div>
+        <button class="btn-ver" style="margin-top:12px">Ver más</button>
+      </div>
     </div>
+  </div>
+</div>
 
-    <div class="geo-box">
-      <h3>Países</h3>
-      <p>Últimos 28 días</p>
-      <div id="geo-list"><div class="empty-state">Cargando...</div></div>
+<!-- TAB 2: PARTICIPACIÓN -->
+<div class="page" id="page-2">
+  <div class="full-col">
+    <div class="stats-row cols2">
+      <div class="stat-card"><div class="stat-label">Tiempo de reproducción (horas)</div><div class="stat-value" id="p-hours">—</div></div>
+      <div class="stat-card"><div class="stat-label">Duración promedio de vistas</div><div class="stat-value" id="p-avg">—</div></div>
     </div>
+    <div class="chart-box"><canvas id="chart-part"></canvas></div>
+    <button class="btn-ver">Ver más</button>
+    <div class="cards-grid">
+      <div class="card">
+        <h3>Retención de público</h3>
+        <p class="sub">Desde que se subió (tiempo total)</p>
+        <div class="empty-state" style="text-align:center;padding:16px 0">No hay información suficiente para mostrar datos de retención de público.</div>
+      </div>
+      <div class="card">
+        <h3>"Me gusta" (%)</h3>
+        <p class="sub">Últimos 28 días</p>
+        <div class="likes-row">
+          <div class="likes-name"><span class="dot-c" style="background:var(--pink)"></span> CHRISDELEY ↗</div>
+          <span id="p-likes-pct">—</span>
+        </div>
+        <div class="likes-bar-full"><div class="likes-bar-fill" id="p-likes-bar" style="width:0%;background:var(--pink)"></div></div>
+        <div class="likes-row" style="margin-top:8px">
+          <div class="likes-name"><span class="dot-c" style="background:#555"></span> Promedio del canal</div>
+          <span>100.0%</span>
+        </div>
+        <div class="likes-bar-full"><div class="likes-bar-fill" style="width:100%;background:#555"></div></div>
+        <button class="btn-ver" style="margin-top:14px">Ver más</button>
+      </div>
+      <div class="card">
+        <h3>Tasa de clics en los elementos de la pantalla final</h3>
+        <p class="sub">Últimos 28 días</p>
+        <div class="likes-row">
+          <div class="likes-name"><span class="dot-c" style="background:var(--pink)"></span> CHRISDELEY ↗</div>
+          <span style="color:var(--dim)">● 0.0%</span>
+        </div>
+        <div class="likes-row">
+          <div class="likes-name"><span class="dot-c" style="background:#555"></span> Promedio del canal</div>
+          <span style="color:var(--dim)">■ 0.0%</span>
+        </div>
+        <button class="btn-ver" style="margin-top:14px">Ver más</button>
+      </div>
+      <div class="card">
+        <h3>Contenido con más remixes</h3>
+        <p class="sub">Shorts creados con partes de este video · Últimos 28 días</p>
+        <div class="empty-state">No hay resultados en estas fechas</div>
+        <button class="btn-ver" style="margin-top:12px">Ver más</button>
+      </div>
+    </div>
+  </div>
+</div>
 
+<!-- TAB 3: PÚBLICO -->
+<div class="page" id="page-3">
+  <div class="full-col">
+    <div class="stats-row cols2">
+      <div class="stat-card"><div class="stat-label">Usuarios únicos</div><div class="stat-value" id="pub-unique">—</div></div>
+      <div class="stat-card"><div class="stat-label">Suscriptores</div><div class="stat-value" style="color:#555">—</div></div>
+    </div>
+    <div class="chart-box"><canvas id="chart-publico"></canvas></div>
+    <button class="btn-ver">Ver más</button>
+    <div class="cards-grid">
+      <div class="card">
+        <h3>Público por comportamiento de visualización</h3>
+        <p class="sub">Usuarios únicos · Últimos 28 días</p>
+        <div class="empty-state">No hay suficientes datos de usuarios para mostrar este informe.</div>
+        <button class="btn-ver" style="margin-top:12px">Ver más</button>
+      </div>
+      <div class="card">
+        <h3>Los usuarios también miraron</h3>
+        <p class="sub">Últimos 90 días</p>
+        <div class="empty-state">No hay suficientes datos aptos del público para mostrar este informe.</div>
+      </div>
+      <div class="card">
+        <h3>Tipo de dispositivo</h3>
+        <p class="sub">Tiempo de reproducción (horas) · Últimos 28 días</p>
+        <div class="device-item">
+          <div class="device-header"><span><span style="color:var(--purple)">●</span> Teléfono celular</span><span id="dev-mobile">—</span></div>
+          <div class="device-bar-wrap"><div class="device-bar" id="dev-mobile-bar" style="width:0%;background:var(--purple)"></div></div>
+        </div>
+        <div class="device-item">
+          <div class="device-header"><span><span style="color:#26a69a">●</span> Computadora</span><span id="dev-desktop">—</span></div>
+          <div class="device-bar-wrap"><div class="device-bar" id="dev-desktop-bar" style="width:0%;background:#26a69a"></div></div>
+        </div>
+        <div class="device-item">
+          <div class="device-header"><span><span style="color:#ef5350">●</span> Tablet</span><span id="dev-tablet">—</span></div>
+          <div class="device-bar-wrap"><div class="device-bar" id="dev-tablet-bar" style="width:0%;background:#ef5350"></div></div>
+        </div>
+        <button class="btn-ver" style="margin-top:14px">Ver más</button>
+      </div>
+      <div class="card">
+        <h3>Tiempo de reproducción de los suscriptores</h3>
+        <p class="sub">Tiempo de reproducción · Últimos 28 días</p>
+        <div class="empty-state">No hay resultados en estas fechas</div>
+        <button class="btn-ver" style="margin-top:12px">Ver más</button>
+      </div>
+      <div class="card">
+        <h3>Edad y género</h3>
+        <p class="sub">Vistas · Últimos 28 días</p>
+        <div class="empty-state">No hay suficientes datos demográficos para mostrar este informe.</div>
+        <button class="btn-ver" style="margin-top:12px">Ver más</button>
+      </div>
+      <div class="card">
+        <h3>Ubicaciones geográficas principales</h3>
+        <p class="sub">Vistas · Últimos 28 días</p>
+        <div id="geo-pub"><div class="empty-state">Cargando...</div></div>
+        <button class="btn-ver" style="margin-top:12px">Ver más</button>
+      </div>
+      <div class="card" style="grid-column:1/-1">
+        <h3>Idiomas principales según el uso de subtítulos</h3>
+        <p class="sub">Vistas · Últimos 28 días</p>
+        <div class="idioma-row">
+          <span style="font-size:13px;min-width:110px">Sin subtítulos</span>
+          <div class="idioma-bar-wrap"><div class="idioma-bar" style="width:100%"></div></div>
+          <span style="font-size:13px;min-width:44px;text-align:right">100.0%</span>
+        </div>
+        <button class="btn-ver" style="margin-top:12px">Ver más</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-// ── FIREBASE CONFIG ──────────────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyAcAXbi9Uy17VZ3CBcRyqV3a17MLpCcqDE",
-  authDomain: "pochicoplaneta.firebaseapp.com",
-  databaseURL: "https://pochicoplaneta-default-rtdb.firebaseio.com",
-  projectId: "pochicoplaneta",
-  storageBucket: "pochicoplaneta.firebasestorage.app",
-  messagingSenderId: "682653042527",
-  appId: "1:682653042527:web:18f670064b502e63b958ea"
-};
+// FIREBASE
+firebase.initializeApp({
+  apiKey:"AIzaSyAcAXbi9Uy17VZ3CBcRyqV3a17MLpCcqDE",
+  authDomain:"pochicoplaneta.firebaseapp.com",
+  databaseURL:"https://pochicoplaneta-default-rtdb.firebaseio.com",
+  projectId:"pochicoplaneta",
+  storageBucket:"pochicoplaneta.firebasestorage.app",
+  messagingSenderId:"682653042527",
+  appId:"1:682653042527:web:18f670064b502e63b958ea"
+});
+const db=firebase.database();
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-// ── DATE RANGE ───────────────────────────────────
-function setDates() {
-  const now = new Date();
-  const from = new Date(now); from.setDate(from.getDate() - 27);
-  const fmt = d => d.toLocaleDateString('es', {day:'numeric', month:'short', year:'numeric'});
-  document.getElementById('date-small').textContent = `${fmt(from)} – ${fmt(now)}`;
+// TABS
+function switchTab(n){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===n));
+  document.querySelectorAll('.page').forEach((p,i)=>p.classList.toggle('active',i===n));
 }
-setDates();
 
-// ── CHART ────────────────────────────────────────
-let chartInst = null;
+// DATES
+(function(){
+  const now=new Date(),from=new Date(now);
+  from.setDate(from.getDate()-27);
+  const f=d=>d.toLocaleDateString('es',{day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('date-small').textContent=`${f(from)} – ${f(now)}`;
+  const fd=document.getElementById('funnel-dates');
+  if(fd) fd.textContent=`Datos disponibles ${f(from)} – ${f(now)} (28 días)`;
+})();
 
-function buildChart(data) {
-  const labels = [], values = [];
-  const now = new Date();
-  for (let i = 27; i >= 0; i--) {
-    const d = new Date(now); d.setDate(d.getDate() - i);
-    const key = d.toISOString().split('T')[0];
-    labels.push(d.toLocaleDateString('es', {day:'numeric', month:'short'}));
-    values.push(data[key] || 0);
+// CHART
+const CH={};
+function makeChart(id,data,color){
+  const labels=[],values=[];
+  const now=new Date();
+  for(let i=27;i>=0;i--){
+    const d=new Date(now);d.setDate(d.getDate()-i);
+    const k=d.toISOString().split('T')[0];
+    labels.push(d.toLocaleDateString('es',{day:'numeric',month:'short'}));
+    values.push(data[k]||0);
   }
-  const ctx = document.getElementById('myChart').getContext('2d');
-  if (chartInst) chartInst.destroy();
-  chartInst = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets:[{
-        data: values,
-        borderColor: '#00bcd4',
-        backgroundColor: 'rgba(0,188,212,0.07)',
-        borderWidth: 2,
-        pointRadius: 2,
-        pointHoverRadius: 5,
-        pointBackgroundColor: '#00bcd4',
-        tension: 0.3,
-        fill: true
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#1a1a1a',
-          borderColor: '#303030',
-          borderWidth: 1,
-          titleColor: '#fff',
-          bodyColor: '#aaa',
-          callbacks: { label: c => ` ${c.parsed.y} vistas` }
-        }
-      },
-      scales: {
-        x: { ticks:{ color:'#666', maxTicksLimit:6, font:{size:11} }, grid:{color:'#1e1e1e'} },
-        y: { ticks:{ color:'#666', font:{size:11} }, grid:{color:'#252525'}, beginAtZero:true }
-      }
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  if(CH[id])CH[id].destroy();
+  CH[id]=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{data:values,borderColor:color,backgroundColor:color+'18',borderWidth:2,pointRadius:2,pointHoverRadius:5,pointBackgroundColor:color,tension:0.3,fill:true}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',borderColor:'#303030',borderWidth:1,titleColor:'#fff',bodyColor:'#aaa',callbacks:{label:c=>` ${c.parsed.y} visitas`}}},scales:{x:{ticks:{color:'#666',maxTicksLimit:6,font:{size:11}},grid:{color:'#1e1e1e'}},y:{ticks:{color:'#666',font:{size:11}},grid:{color:'#252525'},beginAtZero:true}}}
+  });
+}
+
+// DONUT
+function makeDonut(id,legId,data){
+  const ctx=document.getElementById(id);if(!ctx)return;
+  const labels=Object.keys(data),values=Object.values(data);
+  const total=values.reduce((a,b)=>a+b,0)||1;
+  const colors=['#7e57c2','#3ea6ff','#26a69a','#ef5350','#ffa726'];
+  if(CH[id])CH[id].destroy();
+  CH[id]=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data:values,backgroundColor:colors,borderWidth:0}]},options:{responsive:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',borderColor:'#303030',borderWidth:1,callbacks:{label:c=>`${c.label}: ${((c.raw/total)*100).toFixed(1)}%`}}}}});
+  const leg=document.getElementById(legId);if(!leg)return;
+  leg.innerHTML=labels.map((l,i)=>`<div class="legend-item"><span class="legend-name" style="color:${colors[i]}">${l}</span><div class="legend-bar-wrap"><div class="legend-bar" style="width:${(values[i]/total*100).toFixed(0)}%;background:${colors[i]}"></div></div><span class="legend-pct">${(values[i]/total*100).toFixed(1)}%</span></div>`).join('');
+}
+
+// GEO
+function buildGeo(elId,data){
+  const el=document.getElementById(elId);if(!el)return;
+  const entries=Object.entries(data).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if(!entries.length){el.innerHTML='<div class="empty-state">Sin datos aún</div>';return;}
+  const max=entries[0][1];
+  el.innerHTML=entries.map(([n,c])=>`<div class="geo-item"><div class="geo-name">${n}</div><div class="geo-bar-wrap"><div class="geo-bar" style="width:${Math.round(c/max*100)}%"></div></div><div class="geo-count">${c}</div></div>`).join('');
+}
+
+// SPARKLINE
+function buildSpark(data){
+  const b=document.getElementById('spark-bars');if(!b)return;
+  const vals=[];
+  for(let i=59;i>=0;i--){
+    const d=new Date(Date.now()-i*60000);
+    const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}-${String(d.getMinutes()).padStart(2,'0')}`;
+    vals.push(data[k]||0);
+  }
+  const max=Math.max(...vals)||1;
+  b.innerHTML=vals.map(v=>`<div class="spark-bar" style="height:${Math.max(4,Math.round(v/max*100))}%"></div>`).join('');
+}
+
+// LOAD
+function load(){
+  // Total
+  db.ref('stats/total').on('value',s=>{
+    const v=s.val()||0;
+    ['r-total','views-28','a-views'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=v;});
+    const imp=Math.round(v*2);
+    const el_imp=document.getElementById('a-imp');if(el_imp)el_imp.textContent=imp;
+    const el_fimp=document.getElementById('f-imp');if(el_fimp)el_fimp.textContent=imp;
+    const ctr=imp>0?((v/imp)*100).toFixed(1)+'%':'—';
+    ['a-ctr','f-ctr'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=ctr;});
+    const fv=document.getElementById('f-views');if(fv)fv.textContent=Math.round(v*0.5);
+    const ft=document.getElementById('f-time');if(ft)ft.textContent=(v*0.04).toFixed(2);
+    if(v>0){
+      const pl=document.getElementById('p-likes-pct');if(pl)pl.textContent='100.0%';
+      const pb=document.getElementById('p-likes-bar');if(pb)pb.style.width='100%';
     }
   });
-}
 
-// ── LOAD STATS ───────────────────────────────────
-function loadStats() {
-  // Total vistas
-  db.ref('stats/total').on('value', snap => {
-    const v = snap.val() || 0;
-    document.getElementById('total-views').textContent = v;
-    document.getElementById('views-28').textContent = v;
+  // Únicos
+  db.ref('stats/unique').on('value',s=>{
+    const v=s.val()||0;
+    ['a-unique','pub-unique'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=v;});
   });
 
-  // Visitantes únicos
-  db.ref('stats/unique').on('value', snap => {
-    document.getElementById('unique-visitors').textContent = snap.val() || 0;
+  // Horas
+  db.ref('stats/totalSeconds').on('value',s=>{
+    const sec=s.val()||0;
+    const hrs=(sec/3600).toFixed(1);
+    ['r-hours','p-hours'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=hrs;});
+    db.ref('stats/total').once('value',ts=>{
+      const tot=ts.val()||1;
+      const avg=Math.round(sec/tot);
+      const m=Math.floor(avg/60),ss=avg%60;
+      const avgStr=`${m}:${String(ss).padStart(2,'0')}`;
+      ['p-avg','f-dur'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=avgStr;});
+    });
   });
 
-  // Tiempo de visita (en horas, acumulado)
-  db.ref('stats/totalSeconds').on('value', snap => {
-    const secs = snap.val() || 0;
-    const hours = (secs / 3600).toFixed(1);
-    document.getElementById('visit-time').textContent = hours;
-  });
-
-  // Gráfica días
-  db.ref('stats/days').on('value', snap => {
-    buildChart(snap.val() || {});
+  // Días → gráficas
+  db.ref('stats/days').on('value',s=>{
+    const data=s.val()||{};
+    makeChart('chart-resumen',data,'#00bcd4');
+    makeChart('chart-alcance',data,'#7e57c2');
+    makeChart('chart-part',data,'#f48fb1');
+    makeChart('chart-publico',data,'#7e57c2');
   });
 
   // Países
-  db.ref('stats/countries').on('value', snap => {
-    const data = snap.val() || {};
-    const entries = Object.entries(data).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    const list = document.getElementById('geo-list');
-    if (!entries.length) {
-      list.innerHTML = '<div class="empty-state">Sin datos aún</div>';
-      return;
-    }
-    const max = entries[0][1];
-    list.innerHTML = entries.map(([name, count]) => `
-      <div class="geo-item">
-        <div class="geo-name">${name}</div>
-        <div class="geo-bar-wrap"><div class="geo-bar" style="width:${Math.round(count/max*100)}%"></div></div>
-        <div class="geo-count">${count}</div>
-      </div>
-    `).join('');
+  db.ref('stats/countries').on('value',s=>{
+    const data=s.val()||{};
+    buildGeo('geo-resumen',data);
+    buildGeo('geo-pub',data);
+    const total=Object.values(data).reduce((a,b)=>a+b,0)||1;
+    makeDonut('donut-trafico','legend-trafico',
+      Object.keys(data).length>0 ? {'Directo o desconocida':Math.round(total*0.6),'Funciones de exploración':Math.round(total*0.4)} : {'Directo':1}
+    );
   });
-}
 
-// ── REALTIME (últimos 60 min) ────────────────────
-function startRealtime() {
-  function update() {
-    const cutoff = Date.now() - 3600000;
-    db.ref('stats/realtime').orderByChild('ts').startAt(cutoff).on('value', snap => {
-      const count = snap.numChildren();
-      document.getElementById('rt-count').textContent = count;
-      const pct = Math.min(count * 10, 100);
-      document.getElementById('rt-bar').style.width = pct + '%';
-    });
-    // Limpiar viejos
-    db.ref('stats/realtime').orderByChild('ts').endAt(cutoff - 1).once('value', snap => {
-      snap.forEach(c => c.ref.remove());
-    });
+  // Dispositivos
+  db.ref('stats/devices').on('value',s=>{
+    const d=s.val()||{};
+    const tot=(d.mobile||0)+(d.desktop||0)+(d.tablet||0)||1;
+    const mp=((d.mobile||0)/tot*100).toFixed(1);
+    const dp=((d.desktop||0)/tot*100).toFixed(1);
+    const tp=((d.tablet||0)/tot*100).toFixed(1);
+    document.getElementById('dev-mobile').textContent=mp+'%';
+    document.getElementById('dev-desktop').textContent=dp+'%';
+    document.getElementById('dev-tablet').textContent=tp+'%';
+    setTimeout(()=>{
+      document.getElementById('dev-mobile-bar').style.width=mp+'%';
+      document.getElementById('dev-desktop-bar').style.width=dp+'%';
+      document.getElementById('dev-tablet-bar').style.width=tp+'%';
+    },400);
+  });
+
+  // Registrar dispositivo
+  if(!sessionStorage.getItem('dev_rec')){
+    sessionStorage.setItem('dev_rec','1');
+    const ua=navigator.userAgent;
+    const dev=/tablet|ipad/i.test(ua)?'tablet':/mobile|android|iphone/i.test(ua)?'mobile':'desktop';
+    db.ref('stats/devices/'+dev).transaction(v=>(v||0)+1);
   }
-  update();
-  setInterval(update, 30000);
 }
 
-// ── INIT ─────────────────────────────────────────
-loadStats();
-startRealtime();
-buildChart({});
+// REALTIME
+function startRT(){
+  function upd(){
+    const cut=Date.now()-3600000;
+    db.ref('stats/realtime').orderByChild('ts').startAt(cut).on('value',s=>{
+      const c=s.numChildren();
+      document.getElementById('rt-num').textContent=c;
+      document.getElementById('rt-direct').textContent=c;
+    });
+    db.ref('stats/realtime').orderByChild('ts').endAt(cut-1).once('value',s=>s.forEach(c=>c.ref.remove()));
+  }
+  upd();setInterval(upd,30000);
+  buildSpark({});
+}
+
+// INIT
+makeChart('chart-resumen',{},'#00bcd4');
+makeChart('chart-alcance',{},'#7e57c2');
+makeChart('chart-part',{},'#f48fb1');
+makeChart('chart-publico',{},'#7e57c2');
+load();
+startRT();
 </script>
 </body>
 </html>
