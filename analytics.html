@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estadísticas · POCHICHO</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0f0f0f; color:#e1e1e1; font-family:'Roboto',sans-serif; min-height:100vh; }
+
+  /* HEADER */
+  .header {
+    background:#212121; border-bottom:1px solid #303030;
+    padding:12px 24px; display:flex; align-items:center;
+    justify-content:space-between; position:sticky; top:0; z-index:100;
+  }
+  .header h1 { font-size:16px; font-weight:400; color:#fff; }
+  .date-wrap { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+  .date-range-small { font-size:11px; color:#aaa; }
+  .date-range-big { font-size:13px; color:#fff; font-weight:500; display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .date-range-big svg { width:16px; height:16px; fill:#aaa; }
+
+  /* TABS */
+  .tabs { display:flex; background:#212121; border-bottom:1px solid #303030; padding:0 24px; }
+  .tab { padding:14px 20px; font-size:14px; color:#aaa; cursor:pointer; border-bottom:2px solid transparent; transition:.2s; }
+  .tab.active { color:#fff; border-bottom-color:#fff; }
+  .tab:hover { color:#fff; }
+
+  /* LAYOUT */
+  .layout { display:grid; grid-template-columns:1fr 280px; gap:0; max-width:1200px; margin:0 auto; }
+  .main { padding:24px; }
+  .sidebar { padding:24px 16px 24px 0; border-left:1px solid #303030; }
+
+  .headline { font-size:20px; font-weight:400; color:#fff; margin-bottom:20px; }
+  .headline b { font-weight:700; }
+
+  /* STATS ROW */
+  .stats-row {
+    display:grid; grid-template-columns:repeat(3,1fr);
+    background:#272727; border-radius:12px; overflow:hidden;
+    border:1px solid #303030; margin-bottom:24px;
+  }
+  .stat-card { background:#1a1a1a; padding:18px 20px; border-right:1px solid #303030; }
+  .stat-card:last-child { border-right:none; }
+  .stat-label { font-size:11px; color:#aaa; margin-bottom:10px; }
+  .stat-value { font-size:28px; font-weight:400; color:#fff; }
+  .stat-dash { font-size:20px; color:#555; }
+
+  /* CHART */
+  .chart-wrap {
+    background:#1a1a1a; border:1px solid #303030; border-radius:12px;
+    padding:16px 20px; margin-bottom:8px;
+  }
+  .chart-wrap canvas { max-height:180px; }
+  .btn-ver-mas {
+    background:#272727; border:none; color:#fff; font-size:13px;
+    padding:8px 14px; border-radius:20px; cursor:pointer; margin-top:12px;
+    transition:.2s;
+  }
+  .btn-ver-mas:hover { background:#333; }
+
+  /* RETENCIÓN */
+  .retencion {
+    background:#1a1a1a; border:1px solid #303030; border-radius:12px;
+    padding:20px; margin-top:16px;
+  }
+  .retencion h3 { font-size:15px; font-weight:500; margin-bottom:4px; }
+  .retencion p { font-size:12px; color:#777; margin-bottom:20px; }
+  .empty-state { text-align:center; color:#555; font-size:13px; padding:20px 0; }
+
+  /* SIDEBAR - TIEMPO REAL */
+  .realtime-box {
+    background:#1a1a1a; border:1px solid #303030; border-radius:12px;
+    padding:18px; margin-bottom:16px;
+  }
+  .rt-header { display:flex; align-items:center; gap:8px; margin-bottom:2px; }
+  .rt-header h3 { font-size:15px; font-weight:500; }
+  .dot { width:8px; height:8px; border-radius:50%; background:#3ea6ff; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+  .rt-sub { font-size:12px; color:#777; margin-bottom:14px; }
+  .rt-count { font-size:42px; font-weight:300; color:#fff; line-height:1; margin-bottom:4px; }
+  .rt-label { font-size:12px; color:#aaa; margin-bottom:16px; }
+  .rt-bar { height:2px; background:#303030; border-radius:1px; margin-bottom:8px; position:relative; overflow:hidden; }
+  .rt-bar-fill { height:100%; background:#3ea6ff; width:0%; transition:width 1s; border-radius:1px; }
+  .rt-times { display:flex; justify-content:space-between; font-size:11px; color:#555; margin-bottom:14px; }
+  .btn-ver-mas-rt {
+    background:#272727; border:none; color:#fff; font-size:13px;
+    padding:7px 14px; border-radius:20px; cursor:pointer; width:100%;
+    transition:.2s;
+  }
+  .btn-ver-mas-rt:hover { background:#333; }
+
+  /* PAÍSES */
+  .geo-box {
+    background:#1a1a1a; border:1px solid #303030; border-radius:12px;
+    padding:18px;
+  }
+  .geo-box h3 { font-size:14px; font-weight:500; margin-bottom:4px; }
+  .geo-box p { font-size:12px; color:#777; margin-bottom:14px; }
+  .geo-item { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .geo-name { font-size:13px; color:#ccc; min-width:90px; }
+  .geo-bar-wrap { flex:1; height:5px; background:#2a2a2a; border-radius:3px; overflow:hidden; }
+  .geo-bar { height:100%; background:#3ea6ff; border-radius:3px; transition:width 1s ease; }
+  .geo-count { font-size:12px; color:#aaa; min-width:24px; text-align:right; }
+
+  @media(max-width:700px){
+    .layout { grid-template-columns:1fr; }
+    .sidebar { border-left:none; border-top:1px solid #303030; padding:16px; }
+    .stats-row { grid-template-columns:1fr; }
+    .stat-card { border-right:none; border-bottom:1px solid #303030; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Estadísticas de video</h1>
+  <div class="date-wrap">
+    <span class="date-range-small" id="date-small"></span>
+    <span class="date-range-big">
+      Últimos 28 días
+      <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+    </span>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active">Resumen</div>
+  <div class="tab">Alcance</div>
+  <div class="tab">Participación</div>
+  <div class="tab">Público</div>
+</div>
+
+<div class="layout">
+  <div class="main">
+
+    <p class="headline">Este sitio recibió <b id="views-28">—</b> visitas en los últimos 28 días</p>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Vistas</div>
+        <div class="stat-value" id="total-views">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Tiempo de visita (horas)</div>
+        <div class="stat-value" id="visit-time">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Visitantes únicos</div>
+        <div class="stat-value stat-dash" id="unique-visitors">—</div>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="myChart"></canvas>
+    </div>
+    <button class="btn-ver-mas">Ver más</button>
+
+    <div class="retencion">
+      <h3>Retención de público</h3>
+      <p>Desde que se subió (tiempo total)</p>
+      <div class="empty-state" id="retention-msg">No hay información suficiente para mostrar datos de retención de público.</div>
+    </div>
+
+  </div>
+
+  <div class="sidebar">
+
+    <div class="realtime-box">
+      <div class="rt-header">
+        <div class="dot"></div>
+        <h3>Tiempo real</h3>
+      </div>
+      <p class="rt-sub">Actualizando</p>
+      <div class="rt-count" id="rt-count">0</div>
+      <div class="rt-label">Vistas · Últimos 60 minutos ▾</div>
+      <div class="rt-bar"><div class="rt-bar-fill" id="rt-bar"></div></div>
+      <div class="rt-times"><span>Hace 60 min</span><span>Ahora</span></div>
+      <button class="btn-ver-mas-rt">Ver más</button>
+    </div>
+
+    <div class="geo-box">
+      <h3>Países</h3>
+      <p>Últimos 28 días</p>
+      <div id="geo-list"><div class="empty-state">Cargando...</div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── FIREBASE CONFIG ──────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyAcAXbi9Uy17VZ3CBcRyqV3a17MLpCcqDE",
+  authDomain: "pochicoplaneta.firebaseapp.com",
+  databaseURL: "https://pochicoplaneta-default-rtdb.firebaseio.com",
+  projectId: "pochicoplaneta",
+  storageBucket: "pochicoplaneta.firebasestorage.app",
+  messagingSenderId: "682653042527",
+  appId: "1:682653042527:web:18f670064b502e63b958ea"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ── DATE RANGE ───────────────────────────────────
+function setDates() {
+  const now = new Date();
+  const from = new Date(now); from.setDate(from.getDate() - 27);
+  const fmt = d => d.toLocaleDateString('es', {day:'numeric', month:'short', year:'numeric'});
+  document.getElementById('date-small').textContent = `${fmt(from)} – ${fmt(now)}`;
+}
+setDates();
+
+// ── CHART ────────────────────────────────────────
+let chartInst = null;
+
+function buildChart(data) {
+  const labels = [], values = [];
+  const now = new Date();
+  for (let i = 27; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    labels.push(d.toLocaleDateString('es', {day:'numeric', month:'short'}));
+    values.push(data[key] || 0);
+  }
+  const ctx = document.getElementById('myChart').getContext('2d');
+  if (chartInst) chartInst.destroy();
+  chartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets:[{
+        data: values,
+        borderColor: '#00bcd4',
+        backgroundColor: 'rgba(0,188,212,0.07)',
+        borderWidth: 2,
+        pointRadius: 2,
+        pointHoverRadius: 5,
+        pointBackgroundColor: '#00bcd4',
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1a1a',
+          borderColor: '#303030',
+          borderWidth: 1,
+          titleColor: '#fff',
+          bodyColor: '#aaa',
+          callbacks: { label: c => ` ${c.parsed.y} vistas` }
+        }
+      },
+      scales: {
+        x: { ticks:{ color:'#666', maxTicksLimit:6, font:{size:11} }, grid:{color:'#1e1e1e'} },
+        y: { ticks:{ color:'#666', font:{size:11} }, grid:{color:'#252525'}, beginAtZero:true }
+      }
+    }
+  });
+}
+
+// ── LOAD STATS ───────────────────────────────────
+function loadStats() {
+  // Total vistas
+  db.ref('stats/total').on('value', snap => {
+    const v = snap.val() || 0;
+    document.getElementById('total-views').textContent = v;
+    document.getElementById('views-28').textContent = v;
+  });
+
+  // Visitantes únicos
+  db.ref('stats/unique').on('value', snap => {
+    document.getElementById('unique-visitors').textContent = snap.val() || 0;
+  });
+
+  // Tiempo de visita (en horas, acumulado)
+  db.ref('stats/totalSeconds').on('value', snap => {
+    const secs = snap.val() || 0;
+    const hours = (secs / 3600).toFixed(1);
+    document.getElementById('visit-time').textContent = hours;
+  });
+
+  // Gráfica días
+  db.ref('stats/days').on('value', snap => {
+    buildChart(snap.val() || {});
+  });
+
+  // Países
+  db.ref('stats/countries').on('value', snap => {
+    const data = snap.val() || {};
+    const entries = Object.entries(data).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const list = document.getElementById('geo-list');
+    if (!entries.length) {
+      list.innerHTML = '<div class="empty-state">Sin datos aún</div>';
+      return;
+    }
+    const max = entries[0][1];
+    list.innerHTML = entries.map(([name, count]) => `
+      <div class="geo-item">
+        <div class="geo-name">${name}</div>
+        <div class="geo-bar-wrap"><div class="geo-bar" style="width:${Math.round(count/max*100)}%"></div></div>
+        <div class="geo-count">${count}</div>
+      </div>
+    `).join('');
+  });
+}
+
+// ── REALTIME (últimos 60 min) ────────────────────
+function startRealtime() {
+  function update() {
+    const cutoff = Date.now() - 3600000;
+    db.ref('stats/realtime').orderByChild('ts').startAt(cutoff).on('value', snap => {
+      const count = snap.numChildren();
+      document.getElementById('rt-count').textContent = count;
+      const pct = Math.min(count * 10, 100);
+      document.getElementById('rt-bar').style.width = pct + '%';
+    });
+    // Limpiar viejos
+    db.ref('stats/realtime').orderByChild('ts').endAt(cutoff - 1).once('value', snap => {
+      snap.forEach(c => c.ref.remove());
+    });
+  }
+  update();
+  setInterval(update, 30000);
+}
+
+// ── INIT ─────────────────────────────────────────
+loadStats();
+startRealtime();
+buildChart({});
+</script>
+</body>
+</html>
