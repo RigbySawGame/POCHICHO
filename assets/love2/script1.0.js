@@ -2430,35 +2430,35 @@ function createPoemGalaxy() {
         scene.add(sprite);
         window.poemSprites.push(sprite);
     });
-    const poemDurations = [
-    3000, // lovePoem1
-    3000, // lovePoem2
-    3000, // lovePoem3
-    3000, // lovePoem4
-    3000, // lovePoem5
-    3000, // lovePoem6
-    3000, // lovePoem7
-    3000, // lovePoem8
-    3000, // lovePoem9
-    3000, // lovePoem10
-    3000, // lovePoem11
-    3000, // lovePoem12
-    3000, // lovePoem13
-    3000, // lovePoem14
-    3000, // lovePoem15
-    3000, // lovePoem16
-    3000, // lovePoem17
-    3000, // lovePoem18
-    3000, // lovePoem19
-    3000, // lovePoem20
-    3000, // lovePoem21
-    3000, // lovePoem22
-    3000, // lovePoem23
-    3000, // lovePoem24
-    3000, // lovePoem25
-    3000, // lovePoem26
-    3000  // lovePoem27
-];
+       const poemDurations = [
+        8000,  // lovePoem1 (14 líneas - necesita tiempo para la reflexión)
+        8000,  // lovePoem2 (13 líneas - denso)
+        7000,  // lovePoem3 (11 líneas)
+        5000,  // lovePoem4 (9 líneas - frases cortas)
+        5000,  // lovePoem5 (9 líneas)
+        4000,  // lovePoem6 (6 líneas)
+        6500,  // lovePoem7 (11 líneas - estilo lista, se lee rápido)
+        10000, // lovePoem8 (14 líneas - texto muy denso y largo)
+        7000,  // lovePoem9 (9 líneas)
+        7500,  // lovePoem10 (9 líneas - ideas complejas)
+        7500,  // lovePoem11 (10 líneas)
+        5000,  // lovePoem12 (6 líneas)
+        4500,  // lovePoem13 (6 líneas)
+        3500,  // lovePoem14 (4 líneas - muy corto)
+        10000, // lovePoem15 (14 líneas - muy denso)
+        5000,  // lovePoem16 (5 líneas)
+        4000,  // lovePoem17 (3 líneas - corto pero impactante)
+        9000,  // lovePoem18 (10 líneas - requiere pausa emocional)
+        6000,  // lovePoem19 (7 líneas)
+        4500,  // lovePoem20 (7 líneas - repetitivo, lectura rápida)
+        4000,  // lovePoem21 (3 líneas)
+        15000, // lovePoem22 (21 líneas - ¡Es el más largo! Necesita mucho tiempo)
+        5000,  // lovePoem23 (7 líneas - palabras cortas)
+        16000, // lovePoem24 (23 líneas - El más extenso de todos)
+        4000,  // lovePoem25 (3 líneas)
+        7000,  // lovePoem26 (7 líneas - profundo)
+        5500   // lovePoem27 (5 líneas - El cierre de Christian)
+    ];
 
 function scheduleNextPoem() {
     const delay = poemDurations[currentPoemIndex] || 8000;
@@ -2615,3 +2615,4 @@ function updateFallingHearts() {
 }
 
 createFallingHearts();
+
